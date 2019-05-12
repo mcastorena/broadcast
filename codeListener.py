@@ -53,7 +53,7 @@ class codeListener(threading.Thread):
 
     def recvBroadcastCode(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)             # UDP socket
-        sock.bind(('', 2000))                                               # Bind to localhost on port 2000
+        sock.bind(('', 2222))                                               # Bind to localhost on port 2000
 
         data, senderAddr = sock.recvfrom(1500, 0)                           # Receive broadcast, buffer size 1500
         self.code = int( data.decode('UTF-8') )                                   # Save code
