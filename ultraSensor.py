@@ -48,8 +48,6 @@ class ultraSensor(threading.Thread):
 
             time.sleep(0.1)
 
-            print "Waiting for 1st Sensor"
-
             GPIO.output(self.TRIG, 1)
             time.sleep(0.00001)
             GPIO.output(self.TRIG, 0)
