@@ -5,23 +5,32 @@ import array
 from struct import pack
 from time import sleep
 
-portLocation = 'COM11'
+# shared variables
+import config
 
-distance = 10
-offset = 10
+portLocation = '/dev/ttyACM0'
+
 sensor1 = 0
 sensor2 = 0
 sensor3 = 0
 
-sem = threading.Semaphore()
+serialSem = threading.Semaphore()
 printSem = threading.Semaphore()
 ser = serial.Serial(port=portLocation, baudrate=115200)
 
 
 class codeListener(threading.Thread):
-    def __init__(self):
+
+    def __init__(self, s, p, c):
         threading.Thread.__init__(self)
         self.code = None
+        self.serialSem = s
+        self.printSem = p
+
+        self.condition = c
+        self.usingAruco = False
+
+
 
     def payload(self, code, distance, offset, sensor1, sensor2, sensor3):
         ch = 0
@@ -49,51 +58,63 @@ class codeListener(threading.Thread):
         data, senderAddr = sock.recvfrom(1500, 0)                           # Receive broadcast, buffer size 1500
         self.code = int( data.decode('UTF-8') )                                   # Save code
         print("\nBroadcast code received: ", self.code)
+
+        self.condition.acquire()                                                 # Write QR_code to global
+        config.QR_code = self.code
+        self.condition.release()
+
         self.writeCode()
 
     def writeCode(self):
         codePay = self.payload(self.code,0,0,0,0,0)                                      # Pack code as unsigned short
-        sem.acquire()                                                       # Acquire semaphore lock
+        self.serialSem.acquire()                                                       # Acquire semaphore lock
         ser.write(codePay)                                                  # Write code to serial
-        sem.release()                                                       # Release semaphore lock
+        self.serialSem.release()                                                       # Release semaphore lock
         print("\nBroadcast code written to serial")
 
     def readSerial(self):
         msgRecv = b''                                                      # Initialize msgRecv as b'0'
-        while(b'Sensor Reading' or b'In BROADCAST' not in msgRecv):                                             # Read serial until a message is received
-            sem.acquire()
+        while(msgRecv == b''):                                             # Read serial until a message is received
+            serialSem.acquire()
             msgRecv = ser.read_all()                                        # Read from serial and store it in msgRecv
-            sem.release()
-        print("\nReceived: ", msgRecv)
-        self.writeDistanceOffset()                                      # Call writeDistanceOffset
+            self.serialSem.release()
+            if(msgRecv != b''):
+                if(msgRecv.find(b'Sensor Reading') != -1):
+                    print(msgRecv.find(b'Sensor Reading'))
+                    print("\nReceived: ", msgRecv)
+                    break
+        if(self.usingAruco):
+            self.arucoDistanceOffset()
+        else:
+            self.writeDistanceOffset()                                      # Call writeDistanceOffset
 
+    def arucoDistanceOffset(self):
+        while(config.distance and config.offset == 0):                                # Wait to receive distance and offset from aruco thread
+            sleep(.5)
 
-    def writeDistanceOffset(self):
-        printSem.acquire()
-        distance = input("Distance: ")
-        offset = input("Offset: ")
         # sensor1 = input("Sensor1: ")
         # sensor2 = input("Sensor2: ")
         # sensor3 = input("Sensor3: ")
-        print("Inputs:\t", distance, offset)
-        printSem.release()
-        pay = self.payload(self.code, int(distance), int(offset), sensor1, sensor2, sensor3)
+        self.printSem.acquire()
+        print("Inputs:\t", config.distance, config.offset)
+        self.printSem.release()
+        pay = self.payload(self.code, int(config.distance), int(config.offset), sensor1, sensor2, sensor3)
         print("Writing payload to serial...")  # print payload
-        sem.acquire()  # get semaphore lock
+        self.serialSem.acquire()  # get semaphore lock
         ser.write(pay)  # write payload to serial port
-        sem.release()  # release semaphore lock
+        self.serialSem.release()  # release semaphore lock
 
-def readSerial():
-    while 1:
-        sleep(1)
-        sem.acquire()
-        pay = ser.read_all()
-        sem.release()
-        if(pay != b''):
-            printSem.acquire()
-            print("running: ", pay)
-            printSem.release()
+    def writeDistanceOffset(self):
+        self.printSem.acquire()
+        distance = input("Distance: ")
+        offset = input("Offset: ")
+        print("Inputs:\t", distance, offset)
+        print("Writing payload to serial...")
+        self.printSem.release()
+        pay = self.payload(self.code, int(distance), int(offset), sensor1, sensor2, sensor3)
 
-myListener = codeListener()
-myListener.start()
-readThread = threading.Thread(target=readSerial())
+        self.serialSem.acquire()  # get semaphore lock
+        ser.write(pay)  # write payload to serial port
+        self.serialSem.release()  # release semaphore lock
+
+
