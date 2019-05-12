@@ -4,8 +4,7 @@ import serial
 
 #from aruco_calculations import ArucoCalculator
 from codeListener import codeListener
-from distanceSensors import distanceSensors
-
+from ultraSensor import ultraSensor
 # Global variables
 condition = threading.Condition()
 printSem = threading.Semaphore()
@@ -36,7 +35,7 @@ if __name__ == "__main__":
 
     #cameraThread = ArucoCalculator(seconds_per_capture, condition)                 # Create process threads
     teensyInterface = codeListener(serialSem, printSem, condition)
-    distanceSensor = distanceSensors(serialSem, condition)
+    distanceSensor = ultraSensor(serialSem, condition)
 
     #cameraThread.start()                                                # Start threads
     teensyInterface.start()
