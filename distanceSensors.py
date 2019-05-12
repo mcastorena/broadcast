@@ -49,7 +49,7 @@ class distanceSensors(threading.Thread):
 
          GPIO.setup(self.ECHO, GPIO.IN)
 
-         time.sleep(0, 1)
+         time.sleep(1)
 
          print "Waiting for 1st Sensor"
 
@@ -64,6 +64,8 @@ class distanceSensors(threading.Thread):
       pulse_duration = pulse_end - pulse_start
       distance = pulse_duration * 17150
       distance = round(distance, 2)
+
+      print("Distance: ", distance)
 
       pay = self.payload(0, 0, 0, distance, 0, 0)
       self.serialSem.acquire()

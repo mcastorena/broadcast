@@ -18,6 +18,9 @@ serialSem = threading.Semaphore()
 # size in meters of aruco marker
 ARUCO_SQUARE_WIDTH = 0.141  # formerly 0.152
 CALIB_FILENAME = 'camera_calib.json'
+portLocation = '/dev/ttyACM0'
+
+ser = serial.Serial(port=portLocation, baudrate=115200)
 
 
 def readSerial():
