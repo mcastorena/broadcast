@@ -15,7 +15,7 @@ ser = serial.Serial(port=portLocation, baudrate=115200)
 class distanceSensors(threading.Thread):
    def __init__(self, s, c):
       threading.Thread.__init__(self)
-       GPIO.setmode(GPIO.BCM)
+      GPIO.setmode(GPIO.BCM)
       self.TRIG = 14
       self.ECHO = 24
       self.serialSem = s
