@@ -6,10 +6,6 @@ import serial
 from codeListener import codeListener
 from distanceSensors import distanceSensors
 
-#global offset
-#global distance
-#global condition
-
 # Global variables
 condition = threading.Condition()
 printSem = threading.Semaphore()
@@ -27,7 +23,7 @@ def readSerial():
     while 1:
         sleep(1)
         serialSem.acquire()
-        pay = serial.serial.read_all()
+        pay = ser.read_all()
         serialSem.release()
         if(pay != b''):                                                 # If not empty print
             printSem.acquire()
